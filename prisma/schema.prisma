@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SALES
+  MANAGER
+  OWNER
+}
+
+enum CustomerStatus {
+  LEAD
+  APPOINTMENT
+  VISIT
+  MEASURE
+  QUOTE
+  DEPOSIT
+  ORDER
+  DELIVERY
+  AFTERSALES
+  LOST
+}
+
+enum CustomerSource {
+  DOUYIN
+  STORE
+  REFERRAL
+  FOREMAN
+  DECORATION
+  EVENT
+}
+
+enum CustomerType {
+  RETAIL
+  RENOVATION
+  PROJECT
+}
+
+enum FollowupMethod {
+  PHONE
+  WECHAT
+  VISIT
+}
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  username     String    @unique
+  passwordHash String
+  role         Role      @default(SALES)
+  createdAt    DateTime  @default(now())
+  customers    Customer[] @relation("CustomerOwner")
+  followups    Followup[]
+}
+
+model Customer {
+  id             String         @id @default(cuid())
+  name           String
+  phone          String
+  wechat         String?
+  address        String?
+  community      String?
+  source         CustomerSource
+  type           CustomerType
+  tags           String[]
+  status         CustomerStatus @default(LEAD)
+  ownerUserId    String
+  owner          User           @relation("CustomerOwner", fields: [ownerUserId], references: [id])
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  lastFollowupAt DateTime?
+  nextContactAt  DateTime?
+  followups      Followup[]
+}
+
+model Followup {
+  id            String         @id @default(cuid())
+  customerId    String
+  userId        String
+  method        FollowupMethod
+  content       String
+  nextContactAt DateTime?
+  createdAt     DateTime       @default(now())
+  customer      Customer       @relation(fields: [customerId], references: [id])
+  user          User           @relation(fields: [userId], references: [id])
+
+  @@index([customerId])
+}
