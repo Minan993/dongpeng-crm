@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# One-click deploy for Alibaba Cloud Linux 3.2 (root-path friendly)
+# One-click deploy (Ubuntu 22.04 preferred, still supports dnf-based distros)
 # Usage:
 #   sudo bash scripts/one_click_up.sh
 # Optional env overrides:
@@ -23,20 +23,54 @@ replace_or_append_env() {
   fi
 }
 
-clean_conflicting_runtime_pkgs() {
-  log "removing conflicting podman-docker stack when present..."
-  dnf remove -y podman-docker docker docker-client docker-client-latest docker-common || true
-  # These can conflict with docker-ce/containerd dependency chain on Aliyun images.
-  dnf remove -y podman buildah || true
+ensure_base_tools() {
+  if command -v apt-get >/dev/null 2>&1; then
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update -y
+    apt-get install -y ca-certificates curl gnupg lsb-release git nginx openssl
+  elif command -v dnf >/dev/null 2>&1; then
+    dnf update -y
+    dnf install -y git nginx openssl curl ca-certificates
+  else
+    err "unsupported package manager: neither apt-get nor dnf found"
+    exit 1
+  fi
 }
 
-install_docker_engine() {
-  log "installing Docker CE repo and engine packages..."
+install_docker_engine_apt() {
+  log "installing Docker Engine via apt (Ubuntu/Debian)..."
+  install -m 0755 -d /etc/apt/keyrings
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  chmod a+r /etc/apt/keyrings/docker.gpg
+
+  . /etc/os-release
+  echo \
+    "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+    ${VERSION_CODENAME} stable" >/etc/apt/sources.list.d/docker.list
+
+  apt-get update -y
+  apt-get remove -y docker.io docker-doc docker-compose podman-docker containerd runc || true
+  apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+}
+
+install_docker_engine_dnf() {
+  log "installing Docker CE repo and engine packages (dnf)..."
   dnf install -y dnf-plugins-core curl ca-certificates
   dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo || true
   dnf makecache -y || true
-  clean_conflicting_runtime_pkgs
+  dnf remove -y podman-docker docker docker-client docker-client-latest docker-common podman buildah || true
   dnf install -y --allowerasing docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+}
+
+install_docker_engine() {
+  if command -v apt-get >/dev/null 2>&1; then
+    install_docker_engine_apt
+  elif command -v dnf >/dev/null 2>&1; then
+    install_docker_engine_dnf
+  else
+    err "cannot install docker: unsupported package manager"
+    exit 1
+  fi
 }
 
 configure_docker_registry_mirror() {
@@ -55,12 +89,8 @@ configure_docker_registry_mirror() {
 }
 JSON
 
-  if systemctl list-unit-files | grep -q '^docker.service'; then
-    systemctl daemon-reload || true
-    systemctl restart docker
-  fi
-
-  # Allow daemon to settle before first pull.
+  systemctl daemon-reload || true
+  systemctl restart docker || true
   sleep 2
 }
 
@@ -69,7 +99,6 @@ ensure_docker_ready() {
     install_docker_engine
   fi
 
-  # If docker is a podman emulation wrapper, replace it.
   if docker --help 2>&1 | grep -qi 'podman'; then
     log "detected podman-emulated docker CLI; switching to Docker CE"
     install_docker_engine
@@ -79,16 +108,8 @@ ensure_docker_ready() {
     install_docker_engine
   fi
 
-  if systemctl list-unit-files | grep -q '^docker.service'; then
-    systemctl enable docker
-    systemctl start docker
-  elif systemctl list-unit-files | grep -q '^docker.socket'; then
-    systemctl enable docker.socket
-    systemctl start docker.socket
-  else
-    err "docker.service not found after install. please verify OS repo/network manually"
-    exit 1
-  fi
+  systemctl enable docker || true
+  systemctl start docker || true
 
   if ! docker info >/dev/null 2>&1; then
     err "docker daemon is not running"
@@ -123,8 +144,7 @@ log "project dir: ${PROJECT_DIR}"
 cd "$PROJECT_DIR"
 
 log "installing base packages (git/nginx/openssl)..."
-dnf update -y
-dnf install -y git nginx openssl curl || true
+ensure_base_tools
 
 log "ensuring Docker engine & compose..."
 ensure_docker_ready

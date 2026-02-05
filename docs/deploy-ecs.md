@@ -1,10 +1,10 @@
-# Alibaba Cloud Linux 3.2 从 0 到上线部署说明（第 7 部分）
+# Ubuntu 22.04 LTS（ECS）从 0 到上线部署说明（第 7 部分）
 
 > 目标：无域名场景下，通过 `http://<服务器IP>:80` 直接访问 CRM；后续绑定域名时仅需修改 Nginx `server_name` 与证书配置。
 
 ## 0. 前置条件
 
-- ECS 系统：Alibaba Cloud Linux 3.2（64 位）
+- ECS 系统：Ubuntu 22.04 LTS（64 位，推荐）
 - 已知信息：ECS 公网 IP、root/sudo 权限
 - 仓库代码：`dongpeng-crm`
 
@@ -22,6 +22,8 @@ sudo PROJECT_DIR=/root/dongpeng-crm ECS_IP=<ECS公网IP> bash scripts/one_click_
 ```
 
 该脚本会自动完成：安装依赖、生成安全 `.env` 关键项、`docker compose up`、`init.sh`、Nginx 配置与 `preflight` 校验。
+
+> 建议新建 ECS 时直接选择 **Ubuntu 22.04 LTS**，可显著降低 Docker/Compose 与 Podman 兼容问题。
 
 ---
 
@@ -52,19 +54,24 @@ sudo firewall-cmd --list-ports
 ## 2. 安装 Docker 与 Compose
 
 ```bash
-sudo dnf update -y
-sudo dnf install -y docker git
-sudo systemctl enable docker
-sudo systemctl start docker
+sudo apt-get update -y
+sudo apt-get install -y ca-certificates curl gnupg lsb-release
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
 
-# Docker Compose Plugin
-sudo dnf install -y docker-compose-plugin || true
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo $VERSION_CODENAME) stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
+
+sudo apt-get update -y
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin git nginx
+sudo systemctl enable --now docker
 
 docker --version
 docker compose version
 ```
-
-> 如果 `docker compose` 不可用，可安装独立二进制 `docker-compose`（仅兜底）。
 
 ---
 
@@ -209,16 +216,20 @@ docker compose logs -f db
 2. **登录失败 401**：确认管理员已初始化（`./scripts/init.sh`）。
 3. **后端启动失败**：检查 `.env` 中 `DATABASE_URL` 与数据库密码是否一致。
 4. **跨域报错**：确认 `CORS_ORIGINS` 包含实际访问地址。
-5. **`Unit docker.service does not exist`**：说明系统未安装 Docker Engine（仅装了 docker 客户端包）。执行：
+5. **`docker.service` 不存在或 Docker 未启动**：执行下列命令安装并启用 Docker Engine：
    ```bash
-   sudo dnf install -y dnf-plugins-core
-   sudo dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-   sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+   sudo apt-get update -y
+   sudo apt-get install -y ca-certificates curl gnupg
+   sudo install -m 0755 -d /etc/apt/keyrings
+   curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+   echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" | sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
+   sudo apt-get update -y
+   sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
    sudo systemctl enable --now docker
    docker info
    docker compose version
    ```
-6. **`docker` 提示 `Emulate Docker CLI using podman` / `looking up compose provider failed`**：说明当前是 podman 兼容层，不是 Docker Engine。执行：
+6. **`docker` 提示 `Emulate Docker CLI using podman` / `looking up compose provider failed`**（常见于非 Ubuntu 镜像）：说明当前是 podman 兼容层，不是 Docker Engine。执行：
    ```bash
    sudo dnf remove -y podman-docker docker docker-client docker-common podman buildah || true
    sudo dnf install -y dnf-plugins-core
