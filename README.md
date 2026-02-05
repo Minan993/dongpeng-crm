@@ -32,12 +32,19 @@ docker compose up -d --build
 ./scripts/restore.sh backups/crm_xxx.dump
 ```
 
+## 上线前自检（Preflight）
+
+```bash
+./scripts/preflight.sh
+```
+
 ## 目录亮点
 
 - `backend/` FastAPI + SQLAlchemy + JWT
 - `frontend/` React + Ant Design
 - `backend/migrations/sql/0001_init.sql` 数据库初始化 SQL
 - `scripts/` 初始化、备份、恢复脚本
+- `scripts/preflight.sh` 上线前快速自检（文件/命令/测试/安全基线）
 - `docs/deploy-ecs.md` ECS 部署说明
 - `deploy/nginx/default.conf` IP 访问反代配置
 - `docs/release-readiness.md` 上线就绪评估与整改清单

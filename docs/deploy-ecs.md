@@ -28,6 +28,14 @@ docker compose up -d --build
 ./scripts/init.sh
 ```
 
+## 3.1 上线前自检（建议）
+
+```bash
+./scripts/preflight.sh
+```
+
+> 若出现 `SECRET_KEY` 默认值或 `CORS_ORIGINS=*`，请先修正 `.env` 再上线。
+
 ## 4. 备份恢复
 
 ```bash
