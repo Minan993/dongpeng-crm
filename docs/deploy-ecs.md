@@ -209,6 +209,15 @@ docker compose logs -f db
 2. **登录失败 401**：确认管理员已初始化（`./scripts/init.sh`）。
 3. **后端启动失败**：检查 `.env` 中 `DATABASE_URL` 与数据库密码是否一致。
 4. **跨域报错**：确认 `CORS_ORIGINS` 包含实际访问地址。
+5. **`Unit docker.service does not exist`**：说明系统未安装 Docker Engine（仅装了 docker 客户端包）。执行：
+   ```bash
+   sudo dnf install -y dnf-plugins-core
+   sudo dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+   sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+   sudo systemctl enable --now docker
+   docker info
+   docker compose version
+   ```
 
 ---
 

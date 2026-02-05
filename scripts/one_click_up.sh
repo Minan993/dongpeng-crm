@@ -14,10 +14,6 @@ APP_ENV_FILE="${PROJECT_DIR}/.env"
 log() { echo "[one-click] $*"; }
 err() { echo "[one-click][ERROR] $*" >&2; }
 
-require_cmd() {
-  command -v "$1" >/dev/null 2>&1 || { err "missing command: $1"; exit 1; }
-}
-
 replace_or_append_env() {
   local key="$1" value="$2" file="$3"
   if grep -qE "^${key}=" "$file"; then
@@ -27,29 +23,58 @@ replace_or_append_env() {
   fi
 }
 
+install_docker_engine() {
+  log "installing Docker CE repo and engine packages..."
+  dnf install -y dnf-plugins-core curl ca-certificates
+  dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo || true
+  dnf makecache -y || true
+  dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+}
+
+ensure_docker_ready() {
+  if ! command -v docker >/dev/null 2>&1; then
+    install_docker_engine
+  fi
+
+  if ! docker compose version >/dev/null 2>&1; then
+    install_docker_engine
+  fi
+
+  if systemctl list-unit-files | grep -q '^docker.service'; then
+    systemctl enable docker
+    systemctl start docker
+  elif systemctl list-unit-files | grep -q '^docker.socket'; then
+    systemctl enable docker.socket
+    systemctl start docker.socket
+  else
+    err "docker.service not found after install. please verify OS repo/network manually"
+    exit 1
+  fi
+
+  if ! docker info >/dev/null 2>&1; then
+    err "docker daemon is not running"
+    exit 1
+  fi
+
+  if ! docker compose version >/dev/null 2>&1; then
+    err "docker compose unavailable"
+    exit 1
+  fi
+}
+
 log "project dir: ${PROJECT_DIR}"
 [ -d "$PROJECT_DIR" ] || { err "project dir not found: ${PROJECT_DIR}"; exit 1; }
 cd "$PROJECT_DIR"
 
-log "installing base packages (docker/git/nginx)..."
+log "installing base packages (git/nginx/openssl)..."
 dnf update -y
-dnf install -y docker git nginx || true
+dnf install -y git nginx openssl curl || true
 
-log "enabling and starting docker/nginx..."
-systemctl enable docker || true
-systemctl start docker
+log "ensuring Docker engine & compose..."
+ensure_docker_ready
+
+log "enabling nginx..."
 systemctl enable nginx || true
-
-if ! docker compose version >/dev/null 2>&1; then
-  log "docker compose plugin missing, trying install..."
-  dnf install -y docker-compose-plugin || true
-fi
-
-require_cmd docker
-if ! docker compose version >/dev/null 2>&1; then
-  err "docker compose still unavailable, please install docker compose plugin manually"
-  exit 1
-fi
 
 if [ ! -f "$APP_ENV_FILE" ]; then
   cp .env.example "$APP_ENV_FILE"
