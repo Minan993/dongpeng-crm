@@ -7,9 +7,11 @@ import {
   Card,
   Form,
   Input,
+  InputNumber,
   Layout,
   Menu,
   Modal,
+  Select,
   Space,
   Table,
   Tag,
@@ -28,6 +30,9 @@ type Lead = { id: string; name: string; mobile: string; source: string; stage: s
 type Customer = { id: string; name: string; mobile: string }
 type Order = { id: string; order_no: string; status: string; total_amount: number; paid_amount: number }
 type Ticket = { id: string; ticket_no: string; type: string; status: string }
+type Measure = { id: string; customer_id: string; status: string; designer?: string }
+type Quote = { id: string; customer_id: string; version_no: number; total_amount: number; approve_status: string }
+type Visit = { id: string; customer_id: string; satisfaction_score?: number; comment?: string }
 
 type MeData = {
   id: string
@@ -53,6 +58,16 @@ function initAuthToken() {
   if (token) {
     api.defaults.headers.common.Authorization = `Bearer ${token}`
   }
+}
+
+function useCustomers() {
+  const [customers, setCustomers] = useState<Customer[]>([])
+  const loadCustomers = async () => {
+    const { data } = await api.get<ApiResp<Customer[]>>('/customers')
+    setCustomers(data.data)
+  }
+  useEffect(() => { void loadCustomers() }, [])
+  return { customers, loadCustomers }
 }
 
 function LoginPage({ onLoginSuccess }: { onLoginSuccess: () => void }) {
@@ -86,7 +101,7 @@ function LoginPage({ onLoginSuccess }: { onLoginSuccess: () => void }) {
 }
 
 function Dashboard() {
-  return <Card title="数据看板">已可登录并接入核心业务 CRUD（线索/客户/订单/售后）</Card>
+  return <Card title="数据看板">已接入线索/客户/量尺/报价/订单/售后/回访的基础 CRUD 页面</Card>
 }
 
 function LeadsPage() {
@@ -123,10 +138,7 @@ function LeadsPage() {
   }
 
   return (
-    <Card
-      title="线索管理"
-      extra={<Button type="primary" onClick={() => setOpen(true)}>新增线索</Button>}
-    >
+    <Card title="线索管理" extra={<Button type="primary" onClick={() => setOpen(true)}>新增线索</Button>}>
       <Table rowKey="id" dataSource={rows} pagination={{ pageSize: 8 }}
         columns={[
           { title: '姓名', dataIndex: 'name' },
@@ -208,6 +220,7 @@ function OrdersPage() {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [form] = Form.useForm()
+  const { customers } = useCustomers()
 
   const load = async () => {
     const { data } = await api.get<ApiResp<Order[]>>('/orders')
@@ -245,8 +258,10 @@ function OrdersPage() {
       <Modal title="新增订单" open={open} onOk={onCreate} onCancel={() => setOpen(false)} confirmLoading={loading}>
         <Form form={form} layout="vertical">
           <Form.Item name="order_no" label="订单号" rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item name="customer_id" label="客户ID" rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item name="total_amount" label="订单总额" rules={[{ required: true }]}><Input /></Form.Item>
+          <Form.Item name="customer_id" label="客户" rules={[{ required: true }]}>
+            <Select options={customers.map(c => ({ label: `${c.name} (${c.mobile})`, value: c.id }))} />
+          </Form.Item>
+          <Form.Item name="total_amount" label="订单总额" rules={[{ required: true }]}><InputNumber min={0} style={{ width: '100%' }} /></Form.Item>
         </Form>
       </Modal>
     </Card>
@@ -258,6 +273,7 @@ function TicketsPage() {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [form] = Form.useForm()
+  const { customers } = useCustomers()
 
   const load = async () => {
     const { data } = await api.get<ApiResp<Ticket[]>>('/tickets')
@@ -294,8 +310,160 @@ function TicketsPage() {
       <Modal title="新增售后工单" open={open} onOk={onCreate} onCancel={() => setOpen(false)} confirmLoading={loading}>
         <Form form={form} layout="vertical">
           <Form.Item name="ticket_no" label="工单号" rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item name="customer_id" label="客户ID" rules={[{ required: true }]}><Input /></Form.Item>
+          <Form.Item name="customer_id" label="客户" rules={[{ required: true }]}>
+            <Select options={customers.map(c => ({ label: `${c.name} (${c.mobile})`, value: c.id }))} />
+          </Form.Item>
           <Form.Item name="type" label="问题类型" rules={[{ required: true }]}><Input placeholder="破损/补货/色差" /></Form.Item>
+        </Form>
+      </Modal>
+    </Card>
+  )
+}
+
+function MeasuresPage() {
+  const [rows, setRows] = useState<Measure[]>([])
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [form] = Form.useForm()
+  const { customers } = useCustomers()
+
+  const load = async () => {
+    const { data } = await api.get<ApiResp<Measure[]>>('/measures')
+    setRows(data.data)
+  }
+
+  useEffect(() => { void load() }, [])
+
+  const onCreate = async () => {
+    const vals = await form.validateFields()
+    setLoading(true)
+    try {
+      await api.post('/measures', vals)
+      message.success('量尺单已创建')
+      setOpen(false)
+      form.resetFields()
+      await load()
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Card title="量尺管理" extra={<Button type="primary" onClick={() => setOpen(true)}>新增量尺</Button>}>
+      <Table rowKey="id" dataSource={rows} pagination={{ pageSize: 8 }}
+        columns={[
+          { title: '客户ID', dataIndex: 'customer_id' },
+          { title: '状态', dataIndex: 'status' },
+          { title: '设计师', dataIndex: 'designer' },
+        ]}
+      />
+      <Modal title="新增量尺" open={open} onOk={onCreate} onCancel={() => setOpen(false)} confirmLoading={loading}>
+        <Form form={form} layout="vertical">
+          <Form.Item name="customer_id" label="客户" rules={[{ required: true }]}>
+            <Select options={customers.map(c => ({ label: `${c.name} (${c.mobile})`, value: c.id }))} />
+          </Form.Item>
+          <Form.Item name="designer" label="设计师"><Input /></Form.Item>
+        </Form>
+      </Modal>
+    </Card>
+  )
+}
+
+function QuotesPage() {
+  const [rows, setRows] = useState<Quote[]>([])
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [form] = Form.useForm()
+  const { customers } = useCustomers()
+
+  const load = async () => {
+    const { data } = await api.get<ApiResp<Quote[]>>('/quotes')
+    setRows(data.data)
+  }
+
+  useEffect(() => { void load() }, [])
+
+  const onCreate = async () => {
+    const vals = await form.validateFields()
+    setLoading(true)
+    try {
+      await api.post('/quotes', vals)
+      message.success('报价单已创建')
+      setOpen(false)
+      form.resetFields()
+      await load()
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Card title="报价管理" extra={<Button type="primary" onClick={() => setOpen(true)}>新增报价</Button>}>
+      <Table rowKey="id" dataSource={rows} pagination={{ pageSize: 8 }}
+        columns={[
+          { title: '客户ID', dataIndex: 'customer_id' },
+          { title: '版本', dataIndex: 'version_no' },
+          { title: '总额', dataIndex: 'total_amount' },
+          { title: '审批状态', dataIndex: 'approve_status' },
+        ]}
+      />
+      <Modal title="新增报价" open={open} onOk={onCreate} onCancel={() => setOpen(false)} confirmLoading={loading}>
+        <Form form={form} layout="vertical" initialValues={{ version_no: 1, total_amount: 0 }}>
+          <Form.Item name="customer_id" label="客户" rules={[{ required: true }]}>
+            <Select options={customers.map(c => ({ label: `${c.name} (${c.mobile})`, value: c.id }))} />
+          </Form.Item>
+          <Form.Item name="version_no" label="版本号" rules={[{ required: true }]}><InputNumber min={1} style={{ width: '100%' }} /></Form.Item>
+          <Form.Item name="total_amount" label="报价总额" rules={[{ required: true }]}><InputNumber min={0} style={{ width: '100%' }} /></Form.Item>
+        </Form>
+      </Modal>
+    </Card>
+  )
+}
+
+function VisitsPage() {
+  const [rows, setRows] = useState<Visit[]>([])
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [form] = Form.useForm()
+  const { customers } = useCustomers()
+
+  const load = async () => {
+    const { data } = await api.get<ApiResp<Visit[]>>('/visits')
+    setRows(data.data)
+  }
+
+  useEffect(() => { void load() }, [])
+
+  const onCreate = async () => {
+    const vals = await form.validateFields()
+    setLoading(true)
+    try {
+      await api.post('/visits', vals)
+      message.success('回访记录已创建')
+      setOpen(false)
+      form.resetFields()
+      await load()
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Card title="回访管理" extra={<Button type="primary" onClick={() => setOpen(true)}>新增回访</Button>}>
+      <Table rowKey="id" dataSource={rows} pagination={{ pageSize: 8 }}
+        columns={[
+          { title: '客户ID', dataIndex: 'customer_id' },
+          { title: '满意度', dataIndex: 'satisfaction_score' },
+          { title: '评价', dataIndex: 'comment' },
+        ]}
+      />
+      <Modal title="新增回访" open={open} onOk={onCreate} onCancel={() => setOpen(false)} confirmLoading={loading}>
+        <Form form={form} layout="vertical">
+          <Form.Item name="customer_id" label="客户" rules={[{ required: true }]}>
+            <Select options={customers.map(c => ({ label: `${c.name} (${c.mobile})`, value: c.id }))} />
+          </Form.Item>
+          <Form.Item name="satisfaction_score" label="满意度(1~10)"><InputNumber min={1} max={10} style={{ width: '100%' }} /></Form.Item>
+          <Form.Item name="comment" label="回访评价"><Input /></Form.Item>
         </Form>
       </Modal>
     </Card>
@@ -308,19 +476,18 @@ function Shell({ me, onLogout }: { me: MeData; onLogout: () => void }) {
     { key: '/dashboard', label: <Link to="/dashboard">工作台</Link> },
     { key: '/leads', label: <Link to="/leads">线索</Link> },
     { key: '/customers', label: <Link to="/customers">客户</Link> },
+    { key: '/measures', label: <Link to="/measures">量尺</Link> },
+    { key: '/quotes', label: <Link to="/quotes">报价</Link> },
     { key: '/orders', label: <Link to="/orders">订单</Link> },
     { key: '/tickets', label: <Link to="/tickets">售后</Link> },
+    { key: '/visits', label: <Link to="/visits">回访</Link> },
   ], [])
 
   return (
     <Layout style={{ minHeight: '100vh', background: '#f5f5f7' }}>
       <Sider theme="light">
         <div style={{ padding: 16, fontWeight: 600 }}>东鹏 CRM</div>
-        <Menu
-          mode="inline"
-          items={menuItems}
-          onClick={({ key }) => nav(key)}
-        />
+        <Menu mode="inline" items={menuItems} onClick={({ key }) => nav(key)} />
       </Sider>
       <Layout>
         <Header style={{ background: '#fff', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between' }}>
@@ -333,8 +500,11 @@ function Shell({ me, onLogout }: { me: MeData; onLogout: () => void }) {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/leads" element={<LeadsPage />} />
             <Route path="/customers" element={<CustomersPage />} />
+            <Route path="/measures" element={<MeasuresPage />} />
+            <Route path="/quotes" element={<QuotesPage />} />
             <Route path="/orders" element={<OrdersPage />} />
             <Route path="/tickets" element={<TicketsPage />} />
+            <Route path="/visits" element={<VisitsPage />} />
           </Routes>
         </Content>
       </Layout>
