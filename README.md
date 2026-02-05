@@ -14,6 +14,14 @@ docker compose up -d --build
 - 后端 Swagger：`http://<服务器IP>:8000/docs`
 - 健康检查：`http://<服务器IP>:8000/health`
 
+## 一键上线（root 路径服务器）
+
+```bash
+sudo bash scripts/one_click_up.sh
+# 可指定目录/IP
+# sudo PROJECT_DIR=/root/dongpeng-crm ECS_IP=<服务器公网IP> bash scripts/one_click_up.sh
+```
+
 ## 一键初始化（迁移 + 管理员）
 
 ```bash
@@ -44,6 +52,7 @@ docker compose up -d --build
 - `frontend/` React + Ant Design
 - `backend/migrations/sql/0001_init.sql` 数据库初始化 SQL
 - `scripts/` 初始化、备份、恢复脚本
+- `scripts/one_click_up.sh` ECS 一键上线脚本（安装依赖/启动/初始化/Nginx/自检）
 - `scripts/preflight.sh` 上线前快速自检（文件/命令/测试/安全基线）
 - `docs/deploy-ecs.md` ECS 部署说明
 - `deploy/nginx/default.conf` IP 访问反代配置

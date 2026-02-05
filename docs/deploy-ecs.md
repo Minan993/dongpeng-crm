@@ -8,6 +8,21 @@
 - 已知信息：ECS 公网 IP、root/sudo 权限
 - 仓库代码：`dongpeng-crm`
 
+## 0.1 一键上线（适用于项目已放在 `/root/dongpeng-crm`）
+
+```bash
+cd /root/dongpeng-crm
+sudo bash scripts/one_click_up.sh
+```
+
+可选参数：
+
+```bash
+sudo PROJECT_DIR=/root/dongpeng-crm ECS_IP=<ECS公网IP> bash scripts/one_click_up.sh
+```
+
+该脚本会自动完成：安装依赖、生成安全 `.env` 关键项、`docker compose up`、`init.sh`、Nginx 配置与 `preflight` 校验。
+
 ---
 
 ## 1. 安全组与防火墙放行
