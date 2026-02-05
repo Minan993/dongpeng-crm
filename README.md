@@ -40,6 +40,7 @@ docker compose up -d --build
 - `scripts/` 初始化、备份、恢复脚本
 - `docs/deploy-ecs.md` ECS 部署说明
 - `deploy/nginx/default.conf` IP 访问反代配置
+- `docs/release-readiness.md` 上线就绪评估与整改清单
 
 ## 当前已实现（持续扩展，已补齐基础 RBAC 与统一错误码）
 
