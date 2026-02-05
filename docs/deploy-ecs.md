@@ -228,7 +228,26 @@ docker compose logs -f db
    docker info
    docker compose version
    ```
-7. **Nginx 警告 `conflicting server name "_"`**：表示 80 端口存在多个默认站点配置。删除多余配置后重载：
+7. **`docker compose up` 报错 `registry-1.docker.io ... context deadline exceeded`**：这是拉取 Docker Hub 超时。先配置镜像加速并重试：
+   ```bash
+   sudo mkdir -p /etc/docker
+   sudo tee /etc/docker/daemon.json >/dev/null <<'JSON'
+   {
+     "registry-mirrors": [
+       "https://docker.m.daocloud.io",
+       "https://hub-mirror.c.163.com",
+       "https://mirror.baidubce.com"
+     ],
+     "max-concurrent-downloads": 3
+   }
+   JSON
+   sudo systemctl restart docker
+   cd /root/dongpeng-crm
+   docker compose up -d --build
+   ```
+   如果仍失败，执行 `docker pull postgres:15-alpine` 单独验证网络，再检查 ECS 是否限制外网访问。
+
+8. **Nginx 警告 `conflicting server name "_"`**：表示 80 端口存在多个默认站点配置。删除多余配置后重载：
    ```bash
    sudo ls /etc/nginx/conf.d/
    sudo rm -f /etc/nginx/conf.d/default.conf

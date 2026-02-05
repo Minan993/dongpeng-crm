@@ -39,6 +39,31 @@ install_docker_engine() {
   dnf install -y --allowerasing docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 }
 
+configure_docker_registry_mirror() {
+  local daemon_json="/etc/docker/daemon.json"
+  log "configuring Docker registry mirrors for better pull reliability..."
+  mkdir -p /etc/docker
+
+  cat > "$daemon_json" <<'JSON'
+{
+  "registry-mirrors": [
+    "https://docker.m.daocloud.io",
+    "https://hub-mirror.c.163.com",
+    "https://mirror.baidubce.com"
+  ],
+  "max-concurrent-downloads": 3
+}
+JSON
+
+  if systemctl list-unit-files | grep -q '^docker.service'; then
+    systemctl daemon-reload || true
+    systemctl restart docker
+  fi
+
+  # Allow daemon to settle before first pull.
+  sleep 2
+}
+
 ensure_docker_ready() {
   if ! command -v docker >/dev/null 2>&1; then
     install_docker_engine
@@ -74,6 +99,23 @@ ensure_docker_ready() {
     err "docker compose unavailable"
     exit 1
   fi
+}
+
+compose_up_with_retry() {
+  log "starting application containers..."
+  if docker compose up -d --build; then
+    return 0
+  fi
+
+  log "first compose up failed; applying registry mirrors and retrying once..."
+  configure_docker_registry_mirror
+
+  if ! docker info >/dev/null 2>&1; then
+    err "docker daemon unhealthy after mirror config"
+    exit 1
+  fi
+
+  docker compose up -d --build
 }
 
 log "project dir: ${PROJECT_DIR}"
@@ -112,8 +154,7 @@ replace_or_append_env "POSTGRES_PASSWORD" "$DB_PASS" "$APP_ENV_FILE"
 replace_or_append_env "CORS_ORIGINS" "http://${ECS_IP},http://${ECS_IP}:80" "$APP_ENV_FILE"
 replace_or_append_env "DATABASE_URL" "postgresql+psycopg2://crm:${DB_PASS}@db:5432/crm" "$APP_ENV_FILE"
 
-log "starting application containers..."
-docker compose up -d --build
+compose_up_with_retry
 
 log "running database init script..."
 ./scripts/init.sh
