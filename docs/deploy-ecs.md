@@ -100,6 +100,24 @@ openssl rand -hex 32
 
 ---
 
+
+### 3.1 中国网络环境建议（重要）
+
+为避免构建阶段访问海外源超时，项目默认已启用以下构建镜像参数（可在 `.env` 覆盖）：
+
+```env
+APT_MIRROR_HOST=mirrors.aliyun.com
+PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+NPM_REGISTRY=https://registry.npmmirror.com
+```
+
+若你修改了镜像参数，请执行：
+
+```bash
+docker compose build --no-cache
+docker compose up -d
+```
+
 ## 4. 启动服务（Docker）
 
 ```bash

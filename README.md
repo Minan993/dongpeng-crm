@@ -22,6 +22,21 @@ sudo bash scripts/one_click_up.sh
 # sudo PROJECT_DIR=/root/dongpeng-crm ECS_IP=<服务器公网IP> bash scripts/one_click_up.sh
 ```
 
+
+## 中国网络环境构建加速（已内置）
+
+项目已默认启用中国大陆镜像构建参数：
+- Debian APT：`mirrors.aliyun.com`
+- PyPI：`https://pypi.tuna.tsinghua.edu.cn/simple`
+- npm：`https://registry.npmmirror.com`
+
+如需替换镜像，修改 `.env` 中对应变量后重新构建：
+
+```bash
+docker compose build --no-cache
+docker compose up -d
+```
+
 ## 一键初始化（迁移 + 管理员）
 
 ```bash
