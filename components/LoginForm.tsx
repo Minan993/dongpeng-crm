@@ -35,7 +35,7 @@ export default function LoginForm() {
       }}
     >
       {contextHolder}
-      <Card style={{ width: 360 }}>
+      <Card style={{ width: 360, borderRadius: 16 }}>
         <Typography.Title level={3} style={{ textAlign: "center" }}>
           东鹏 CRM 登录
         </Typography.Title>

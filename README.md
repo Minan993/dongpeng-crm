@@ -64,6 +64,28 @@ npm run start
 
 建议使用进程管理器（如 PM2）或系统服务守护进程。
 
+### 域名备案中（dp1972.cn）与双网 IP 说明
+- 私网 IP：`172.28.17.29`（同 VPC / 内网访问）
+- 公网 IP：`47.110.83.150`（外网访问）
+
+备案完成后建议使用域名 + Nginx 反向代理：
+
+```nginx
+server {
+  listen 80;
+  server_name dp1972.cn www.dp1972.cn;
+
+  location / {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+}
+```
+
+如果备案未完成，建议先使用公网 IP 访问（见下节）。
+
 ### 无域名，仅 IP 访问（Linux）
 如果当前还没有域名，可以直接用服务器公网/内网 IP 访问。
 

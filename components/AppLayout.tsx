@@ -42,7 +42,7 @@ export default function AppLayout({
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
-      <Sider width={220} theme="light">
+      <Sider width={220} theme="light" style={{ borderRight: "1px solid #f0f0f0" }}>
         <div style={{ padding: 16 }}>
           <Typography.Title level={4} style={{ margin: 0 }}>
             东鹏 CRM
@@ -62,7 +62,8 @@ export default function AppLayout({
             padding: "0 24px",
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between"
+            justifyContent: "space-between",
+            borderBottom: "1px solid #f0f0f0"
           }}
         >
           <Typography.Text>

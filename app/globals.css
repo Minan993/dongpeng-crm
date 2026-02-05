@@ -6,8 +6,22 @@ body {
 body {
   margin: 0;
   background: #f5f6f8;
+  color: #1d1d1f;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
 }
 
 * {
   box-sizing: border-box;
+}
+
+.ant-layout {
+  background: #f5f6f8;
+}
+
+.ant-card {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.ant-menu {
+  border-inline-end: none;
 }
