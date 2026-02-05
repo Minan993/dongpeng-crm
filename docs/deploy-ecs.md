@@ -218,6 +218,22 @@ docker compose logs -f db
    docker info
    docker compose version
    ```
+6. **`docker` 提示 `Emulate Docker CLI using podman` / `looking up compose provider failed`**：说明当前是 podman 兼容层，不是 Docker Engine。执行：
+   ```bash
+   sudo dnf remove -y podman-docker docker docker-client docker-common podman buildah || true
+   sudo dnf install -y dnf-plugins-core
+   sudo dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+   sudo dnf install -y --allowerasing docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+   sudo systemctl enable --now docker
+   docker info
+   docker compose version
+   ```
+7. **Nginx 警告 `conflicting server name "_"`**：表示 80 端口存在多个默认站点配置。删除多余配置后重载：
+   ```bash
+   sudo ls /etc/nginx/conf.d/
+   sudo rm -f /etc/nginx/conf.d/default.conf
+   sudo nginx -t && sudo systemctl reload nginx
+   ```
 
 ---
 

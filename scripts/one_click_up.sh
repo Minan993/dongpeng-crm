@@ -23,16 +23,30 @@ replace_or_append_env() {
   fi
 }
 
+clean_conflicting_runtime_pkgs() {
+  log "removing conflicting podman-docker stack when present..."
+  dnf remove -y podman-docker docker docker-client docker-client-latest docker-common || true
+  # These can conflict with docker-ce/containerd dependency chain on Aliyun images.
+  dnf remove -y podman buildah || true
+}
+
 install_docker_engine() {
   log "installing Docker CE repo and engine packages..."
   dnf install -y dnf-plugins-core curl ca-certificates
   dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo || true
   dnf makecache -y || true
-  dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  clean_conflicting_runtime_pkgs
+  dnf install -y --allowerasing docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 }
 
 ensure_docker_ready() {
   if ! command -v docker >/dev/null 2>&1; then
+    install_docker_engine
+  fi
+
+  # If docker is a podman emulation wrapper, replace it.
+  if docker --help 2>&1 | grep -qi 'podman'; then
+    log "detected podman-emulated docker CLI; switching to Docker CE"
     install_docker_engine
   fi
 
