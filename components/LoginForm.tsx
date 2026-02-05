@@ -3,6 +3,20 @@
 import { Button, Card, Form, Input, message, Typography } from "antd";
 import { useRouter } from "next/navigation";
 
+async function safeReadMessage(response: Response) {
+  const text = await response.text();
+  if (!text) {
+    return "登录失败，请稍后再试";
+  }
+
+  try {
+    const data = JSON.parse(text) as { message?: string };
+    return data.message || "登录失败，请稍后再试";
+  } catch {
+    return "登录失败，请稍后再试";
+  }
+}
+
 export default function LoginForm() {
   const router = useRouter();
   const [messageApi, contextHolder] = message.useMessage();
@@ -15,8 +29,8 @@ export default function LoginForm() {
     });
 
     if (!response.ok) {
-      const data = await response.json();
-      messageApi.error(data.message || "登录失败");
+      const errorMessage = await safeReadMessage(response);
+      messageApi.error(errorMessage);
       return;
     }
 
