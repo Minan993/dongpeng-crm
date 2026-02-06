@@ -198,6 +198,8 @@ docker compose up -d
      git pull
      npm run build
      pm2 delete dongpeng-crm || true
+     pm2 delete all || true
+     fuser -k 3000/tcp || true
      pm2 start "npm run start" --name dongpeng-crm --cwd /opt/dongpeng-crm --update-env
      pm2 save
      curl -i http://127.0.0.1:3000/
@@ -213,8 +215,12 @@ docker compose up -d
      ss -lntp | grep ':3000'
      fuser -k 3000/tcp || true
      pm2 delete dongpeng-crm || true
+     pm2 delete all || true
+     fuser -k 3000/tcp || true
      pm2 start "npm run start" --name dongpeng-crm --cwd /opt/dongpeng-crm --update-env
      pm2 save
      curl -i http://127.0.0.1:3000/
      ```
    - 期望返回：`HTTP/1.1 200 OK`。
+
+> 注意：`pm2 delete all` 会停止该 PM2 下所有应用（适合单应用服务器）。

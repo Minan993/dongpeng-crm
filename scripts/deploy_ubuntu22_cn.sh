@@ -13,7 +13,7 @@ ensure_port_3000_free() {
 
   echo "[PORT] 检测到 3000 端口占用: $pids"
   for pid in $pids; do
-    kill "$pid" >/dev/null 2>&1 || true
+    kill "$pid" >/dev/null 2>&1 || sudo kill "$pid" >/dev/null 2>&1 || true
   done
 
   if command -v fuser >/dev/null 2>&1; then
@@ -22,6 +22,13 @@ ensure_port_3000_free() {
   fi
 
   sleep 1
+
+  for _ in $(seq 1 5); do
+    if ! ss -lntp | grep -q ':3000'; then
+      break
+    fi
+    sleep 1
+  done
 
   if ss -lntp | grep -q ':3000'; then
     echo "[ERROR] 3000 端口仍被占用，请先手动处理后再部署。"
@@ -91,8 +98,9 @@ fi
 
 echo "[8/8] 使用 PM2 启动并设置开机自启..."
 npm i -g pm2
-# 清理同名历史进程，避免出现多个 dongpeng-crm 实例混跑
+# 清理历史 PM2 进程，避免旧配置自动拉起同端口服务
 pm2 delete dongpeng-crm >/dev/null 2>&1 || true
+pm2 delete all >/dev/null 2>&1 || true
 
 # 释放 3000 端口，避免 EADDRINUSE
 ensure_port_3000_free
