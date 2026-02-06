@@ -63,14 +63,17 @@ fi
 
 echo "[8/8] 使用 PM2 启动并设置开机自启..."
 npm i -g pm2
-pm2 start "npm run start" --name dongpeng-crm --cwd "$PROJECT_DIR" --update-env || pm2 restart dongpeng-crm --update-env
+# 清理同名历史进程，避免出现多个 dongpeng-crm 实例混跑
+pm2 delete dongpeng-crm >/dev/null 2>&1 || true
+pm2 start "npm run start" --name dongpeng-crm --cwd "$PROJECT_DIR" --update-env
 pm2 save
 pm2 startup systemd -u "$USER" --hp "$HOME" || true
 
-if curl -sS http://127.0.0.1:3000/ >/tmp/dp_home_check.html 2>/dev/null; then
-  echo "[CHECK] 本机访问 http://127.0.0.1:3000/ 成功"
+HTTP_CODE="$(curl -s -o /tmp/dp_home_check.html -w "%{http_code}" http://127.0.0.1:3000/ || true)"
+if [ "$HTTP_CODE" = "200" ]; then
+  echo "[CHECK] 本机访问 http://127.0.0.1:3000/ 成功 (HTTP 200)"
 else
-  echo "[WARN] 本机访问 3000 失败，请执行：pm2 logs dongpeng-crm"
+  echo "[WARN] 本机访问异常，HTTP $HTTP_CODE（期望 200），请执行：pm2 logs dongpeng-crm"
 fi
 
 cat <<'DONE'

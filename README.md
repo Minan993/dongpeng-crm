@@ -190,3 +190,17 @@ docker compose up -d
      ```
    - 正常后再访问：`http://<服务器IP>:3000/admin/login`（未配 Nginx）
 
+5. **`pm2 ls` 出现多个 `dongpeng-crm` 且 `curl 127.0.0.1:3000` 返回 404**
+   - 原因：历史同名进程混跑，命中了旧实例。
+   - 一键修复：
+     ```bash
+     cd /opt/dongpeng-crm
+     git pull
+     npm run build
+     pm2 delete dongpeng-crm || true
+     pm2 start "npm run start" --name dongpeng-crm --cwd /opt/dongpeng-crm --update-env
+     pm2 save
+     curl -i http://127.0.0.1:3000/
+     ```
+   - 期望返回：`HTTP/1.1 200 OK`，然后访问 `http://<服务器IP>:3000/admin/login`。
+
