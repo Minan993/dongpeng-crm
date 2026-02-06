@@ -18,6 +18,22 @@ npm run dev
 
 ---
 
+## 一键部署脚本（你要的版本）
+> 管理员固定为：`admin` / `123`（脚本会自动写入 bcrypt 哈希）
+
+在项目根目录执行：
+```bash
+chmod +x scripts/deploy_ubuntu22_cn.sh
+./scripts/deploy_ubuntu22_cn.sh
+```
+
+脚本会自动完成：
+- 安装系统依赖（含 nginx）
+- 安装 Node.js 20（如未安装）
+- 切换 npm 国内镜像
+- 安装依赖、生成 `.env`、设置管理员账号密码
+- 初始化数据库、构建项目、PM2 守护启动
+
 ## Ubuntu 22.04（国内环境）生产部署指南
 > 适用于阿里云/腾讯云/华为云等国内服务器，重点解决 Node 与 npm 下载慢/403 问题。
 
