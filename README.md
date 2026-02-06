@@ -204,3 +204,17 @@ docker compose up -d
      ```
    - 期望返回：`HTTP/1.1 200 OK`，然后访问 `http://<服务器IP>:3000/admin/login`。
 
+
+6. **`pm2 logs` 出现 `EADDRINUSE: address already in use :::3000`**
+   - 原因：3000 端口被历史 Node 进程占用，新进程无法监听。
+   - 修复：
+     ```bash
+     cd /opt/dongpeng-crm
+     ss -lntp | grep ':3000'
+     fuser -k 3000/tcp || true
+     pm2 delete dongpeng-crm || true
+     pm2 start "npm run start" --name dongpeng-crm --cwd /opt/dongpeng-crm --update-env
+     pm2 save
+     curl -i http://127.0.0.1:3000/
+     ```
+   - 期望返回：`HTTP/1.1 200 OK`。
