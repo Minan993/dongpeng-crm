@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-slate-50 text-slate-800;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', sans-serif;
+}
+.card { @apply bg-white rounded-3xl shadow-sm border border-slate-100 p-5; }
+.btn-primary { @apply bg-slate-900 text-white rounded-full px-5 py-2.5 text-sm; }
+.btn-secondary { @apply bg-white border border-slate-200 rounded-full px-5 py-2.5 text-sm; }
+.input { @apply w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-slate-400; }
+.label { @apply text-xs text-slate-500 mb-1 block; }
