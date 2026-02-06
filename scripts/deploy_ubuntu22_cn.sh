@@ -55,11 +55,23 @@ echo "[7/8] 初始化数据库并构建..."
 npm run init-db
 npm run build
 
+if [ ! -f "client/dist/index.html" ]; then
+  echo "[ERROR] 前端构建产物缺失：client/dist/index.html 不存在"
+  echo "请检查 npm run build 输出日志"
+  exit 1
+fi
+
 echo "[8/8] 使用 PM2 启动并设置开机自启..."
 npm i -g pm2
-pm2 start "npm run start" --name dongpeng-crm --update-env || pm2 restart dongpeng-crm --update-env
+pm2 start "npm run start" --name dongpeng-crm --cwd "$PROJECT_DIR" --update-env || pm2 restart dongpeng-crm --update-env
 pm2 save
 pm2 startup systemd -u "$USER" --hp "$HOME" || true
+
+if curl -sS http://127.0.0.1:3000/ >/tmp/dp_home_check.html 2>/dev/null; then
+  echo "[CHECK] 本机访问 http://127.0.0.1:3000/ 成功"
+else
+  echo "[WARN] 本机访问 3000 失败，请执行：pm2 logs dongpeng-crm"
+fi
 
 cat <<'DONE'
 

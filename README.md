@@ -177,3 +177,16 @@ docker compose up -d
    - 检查云安全组与 UFW 是否放行 80 端口
 3. **重启后服务没了**
    - 使用 PM2 并执行 `pm2 save` + `pm2 startup`
+
+4. **浏览器显示 `Cannot GET /`**
+   - 原因：Node 服务已启动，但前端静态文件 `client/dist` 不存在，或 PM2 不是在项目目录启动。
+   - 修复：
+     ```bash
+     cd /opt/dongpeng-crm
+     npm run build
+     ls -l client/dist/index.html
+     pm2 restart dongpeng-crm --update-env
+     curl -I http://127.0.0.1:3000/
+     ```
+   - 正常后再访问：`http://<服务器IP>:3000/admin/login`（未配 Nginx）
+
