@@ -8,4 +8,5 @@ COPY src ./src
 COPY index.html ./
 RUN npm run build
 EXPOSE 4173
+HEALTHCHECK NONE
 CMD ["npm", "run", "start"]

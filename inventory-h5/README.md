@@ -55,13 +55,15 @@ cat backup.sql | docker compose exec -T db psql -U ${POSTGRES_USER:-inventory} -
 
 ### 1) 出现 502
 - 确认容器健康状态：`docker compose ps`
-- 确认 `api`/`web` 是 `healthy`
+- 确认 `api` 为 `healthy`，`web` 为 `running`
 - 本项目 nginx 已使用 Docker DNS 运行时解析（`resolver 127.0.0.11` + 变量 `proxy_pass`）
 
 ### 2) 健康检查不通过
 - 查看 API 日志：`docker compose logs -f api`
 - 查看数据库日志：`docker compose logs -f db`
 - 检查 `.env` 中数据库账号密码是否一致
+
+- 说明：`web` 服务不设置容器健康检查，避免在部分环境中被误判 `unhealthy`，由 `nginx` 直接反代其 4173 端口。
 
 ### 3) 端口被占用
 - 本项目固定占用宿主机 `8000`
