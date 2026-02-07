@@ -1,0 +1,15 @@
+services:
+  app:
+    image: node:20
+    working_dir: /app
+    command: sh -c "npm install && npm run init-db && npm run build && npm run start"
+    volumes:
+      - ./:/app
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - DB_PATH=server/data/crm.db
+      - JWT_SECRET=changeme
+      - ADMIN_USER=admin
+      - ADMIN_PASSWORD_HASH=$2a$10$3v7E56lgnmA7V5ryMnlX5.t4KAbfyaSEuxsjjXNMTvEihQ/HVbU8.
