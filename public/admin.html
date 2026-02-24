@@ -1,0 +1,10 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><script src="https://cdn.tailwindcss.com"></script><title>管理后台</title></head>
+<body class="bg-slate-100"><div class="max-w-5xl mx-auto p-4"><h1 class="text-2xl font-semibold mb-4">管理员后台</h1>
+<div class="bg-white rounded-2xl p-4 shadow mb-4"><input type="file" id="file"><button id="import" class="bg-black text-white px-4 py-2 rounded ml-2">导入</button><a href="/api/admin/template" class="ml-2 underline">模板下载</a><a href="/api/admin/products/export" class="ml-2 underline">导出</a></div>
+<div class="bg-white rounded-2xl p-4 shadow"><h2 class="font-semibold">操作日志</h2><pre id="logs" class="text-xs overflow-auto"></pre></div></div>
+<script>
+async function check(){const me=await fetch('/api/me');if(me.status!==200){location.href='/auth/wecom/login';return;}const u=await me.json();if(u.role!=='admin'){document.body.innerHTML='无权限';return;}loadLogs();}
+async function loadLogs(){const r=await fetch('/api/admin/logs?page=1&pageSize=50');document.getElementById('logs').textContent=JSON.stringify(await r.json(),null,2)}
+document.getElementById('import').onclick=async()=>{const f=document.getElementById('file').files[0];const fd=new FormData();fd.append('file',f);const r=await fetch('/api/admin/products/import',{method:'POST',body:fd});alert(JSON.stringify(await r.json()));loadLogs();};
+check();
+</script></body></html>
