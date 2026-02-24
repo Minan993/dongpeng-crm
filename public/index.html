@@ -1,0 +1,17 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><script src="https://cdn.tailwindcss.com"></script><title>价格查询</title></head>
+<body class="bg-gray-100 text-gray-900"><div class="max-w-3xl mx-auto p-4">
+<h1 class="text-2xl font-semibold mb-4">导购产品价格查询</h1>
+<input id="search" class="w-full p-4 rounded-2xl shadow bg-white" placeholder="搜索型号/名称/规格/渠道/备注"/>
+<div class="flex gap-2 mt-3"><input id="version" class="p-2 rounded-xl" value="2026年1.0"/><select id="sort" class="p-2 rounded-xl"><option value="updated_at">按更新时间</option><option value="price">按价格</option></select></div>
+<div id="list" class="mt-4 space-y-3"></div><button id="more" class="mt-4 w-full bg-black text-white p-3 rounded-xl">加载更多</button></div>
+<script>
+let page=1;const pageSize=20;
+async function authed(){const m=await fetch('/api/me');if(m.status===401){location.href='/auth/wecom/login';return false;}return true;}
+async function load(reset=false){if(reset){page=1;document.getElementById('list').innerHTML='';}
+const search=document.getElementById('search').value;const version=document.getElementById('version').value;const sortBy=document.getElementById('sort').value;
+const r=await fetch(`/api/products?page=${page}&pageSize=${pageSize}&search=${encodeURIComponent(search)}&version=${encodeURIComponent(version)}&sortBy=${sortBy}`);const j=await r.json();
+const list=document.getElementById('list');j.data.forEach(i=>{const d=document.createElement('div');d.className='bg-white rounded-2xl p-4 shadow';d.innerHTML=`<div class='text-sm text-gray-500'>${i.channel_owner} / ${i.version}</div><div class='text-lg font-semibold'>${i.name} (${i.model})</div><div>${i.spec}</div><div class='mt-2 flex justify-between'><span class='text-2xl font-bold text-blue-600'>¥${i.price||'-'}</span><span class='text-red-500'>控价: ¥${i.price_control||'-'}</span></div><div class='text-xs text-gray-400 mt-1'>${i.updated_at||''} ${i.updated_by_name||''}</div>`;list.appendChild(d);});
+if(j.data.length<pageSize) document.getElementById('more').style.display='none'; else document.getElementById('more').style.display='block';}
+['search','version','sort'].forEach(id=>document.getElementById(id).addEventListener(id==='search'?'input':'change',()=>load(true)));
+document.getElementById('more').onclick=()=>{page+=1;load();};authed().then(ok=>ok&&load(true));
+</script></body></html>
